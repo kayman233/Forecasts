@@ -4,6 +4,10 @@ import datetime
 import math
 
 
+class ForecasterException(Exception):
+    pass
+
+
 class Forecaster:
     def __init__(self, date, first):
         self.current_date = date
@@ -109,6 +113,9 @@ class Forecaster:
             owp_avg_temp = 0
             meta_temp = 0
             cnt = 0
+
+            if len(rows) == 0:
+                raise ForecasterException
 
             for row in rows:
                 forecast_temp, api, date, forecast_time = row

@@ -9,6 +9,8 @@ if __name__ == "__main__":
             hand.get_command(command)
         except ValueError:
             print('Try one more time') #Почему еще раз попробовать?
-        except Exception as error:
+        except handler.AdderException:
             print('Already added')
             print('Try tomorrow')
+        except handler.ForecastException:
+            print('Firstly add current weather')

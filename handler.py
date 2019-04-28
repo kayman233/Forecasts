@@ -5,6 +5,16 @@ import adder
 import forecaster
 
 
+class AdderException(Exception):
+    """Adder"""
+    pass
+
+
+class ForecastException(Exception):
+    """Forecaster"""
+    pass
+
+
 class Handler:
     def __init__(self):
         self.conn = sqlite3.connect('src/weather.db')
@@ -42,15 +52,19 @@ class Handler:
 
     def get_command(self, string):
         commands = string.split(' ')
-        days_for_forecast = commands[3]
+
         if commands[0] in self.get_commands:
+            days_for_forecast = commands[3]
             if len(commands) > self.least_command_words or days_for_forecast == 'tomorrow':
 
                 if commands[3] == 'tomorrow':
                     number_of_days = 1
                 else:
                     number_of_days = int(commands[3])
-                self.forecaster.get_forecast(self.cur, number_of_days)
+                try:
+                    self.forecaster.get_forecast(self.cur, number_of_days)
+                except forecaster.ForecasterException:
+                    raise ForecastException
 
             else:
                 raise ValueError
@@ -58,7 +72,8 @@ class Handler:
             add_str = ' '.join(commands[1:])
 
             if self.has_today_forecast():
-                raise Exception
+                raise AdderException
             else:
                 self.adder.add_real_weather(self.conn, add_str)
                 self.adder.add_forecasts(self.conn)
+

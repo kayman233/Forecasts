@@ -49,10 +49,10 @@ class Adder:
 
         owp_json_data = owp_response.json()
 
-        for i in owp_json_data["list"]:
-            forecasts_list.append([owp_json_data["list"][i]['dt_txt'], # зачем добавлять в массив? Почему нельзя в объект, если потом нам отсюда брать значения?
-                                   owp_json_data["list"][i]["main"]['temp'],
-                                   owp_json_data["list"][i]["weather"][0]['description']])
+        for info in owp_json_data["list"]:
+            forecasts_list.append([info['dt_txt'], # зачем добавлять в массив? Почему нельзя в объект, если потом нам отсюда брать значения?
+                                   info["main"]['temp'],
+                                   info["weather"][0]['description']])
 
         for forecast in forecasts_list:
             forecast_date_time = str(forecast[0]).split(' ')
@@ -61,7 +61,7 @@ class Adder:
             forecast_time = forecast_date_time[1]
             forecast_temp = forecast[1]
             forecast_state = forecast[2]
-
+            print('OWP', forecast_date, forecast_time, forecast_temp, forecast_state)
             self.database_add(conn, 'OWP', forecast_date, forecast_time, forecast_temp, forecast_state)
 
     def add_meta_weather_forecasts(self, conn):
@@ -75,10 +75,10 @@ class Adder:
 
         meta_weather_json_data = meta_weather_response.json()
 
-        for i in meta_weather_json_data['consolidated_weather']:
-            forecasts_list.append([meta_weather_json_data['consolidated_weather'][i]['applicable_date'],
-                                   meta_weather_json_data['consolidated_weather'][i]['the_temp'],
-                                   meta_weather_json_data['consolidated_weather'][i]['weather_state_name']])
+        for info in meta_weather_json_data['consolidated_weather']:
+            forecasts_list.append([info['applicable_date'],
+                                  info['the_temp'],
+                                  info['weather_state_name']])
 
         for forecast in forecasts_list:
             forecast_date = forecast[0]
