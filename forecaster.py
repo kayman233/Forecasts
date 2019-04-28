@@ -9,7 +9,7 @@ class Forecaster:
         self.current_date = date
         self.deviation_list = []
         self.first_day = first
-        self.today_date = datetime.datetime.strptime(self.current_date, "%Y-%m-%d")
+        self.today_date = datetime.datetime.strptime(self.current_date, "%Y-%m-%d") # формат у тебя повторяется, лучше вынести в константу
 
     @staticmethod
     def get_time_difference(first, second):
@@ -19,12 +19,12 @@ class Forecaster:
         second_time = datetime.datetime.strptime(second[:5], "%H:%M")
         diff1 = first_time - second_time
         diff2 = second_time - first_time
-        return min(diff1.seconds, diff2.seconds)
+        return min(diff1.seconds, diff2.seconds) # не очень понял, почему тут минимум, а не модуль
 
     def get_deviation_list(self, cur):
 
         for i in range(1, 6):
-            owp_sum = 0
+            owp_sum = 0 # если захочешь добавить еще один сервис для сравнения, то придется копипастить переменные и тп, лучше сделать массив обьектов типа [{id: 'owp', sum: 0, cnt: 0}, {id: 'meta', sum: 0, cnt: 0}] ну или name вместо id
             owp_cnt = 0
             meta_sum = 0
             meta_cnt = 0
@@ -35,7 +35,8 @@ class Forecaster:
 
             difference = str(0 - i) + ' day'
 
-            while day[0] < self.current_date:
+            while day[0] < self.current_date: # что за day[0]? у тебя разве где-то есть day[1], чтобы хранить весь day?
+                # Лучше это как-то назвать, иначе приходится вчитываться, что же тут вызывается и с какими параметрами
                 cur.execute("""
                     SELECT real_weather.day_of_insert, real_weather.temperature, forecasts.temperature,
                     forecasts.forecast_api, forecasts.day_of_insert, 
@@ -55,7 +56,7 @@ class Forecaster:
                     real_day_of_insert, real_temperature, forecast_temperature, \
                     api, forecast_day_of_insert, real_time, forecast_time = row
 
-                    if self.get_time_difference(real_time, forecast_time) < 5400:
+                    if self.get_time_difference(real_time, forecast_time) < 5400: # опять магическая константа
                         if api == 'OWP':
 
                             owp_sum += abs(real_temperature - forecast_temperature) ** 2
@@ -64,7 +65,7 @@ class Forecaster:
                             meta_sum += abs(real_temperature - forecast_temperature) ** 2
                             meta_cnt += 1
 
-            if owp_cnt > 2:
+            if owp_cnt > 2: # что значит эта 2?
                 owp_deviation = math.sqrt(owp_sum / (owp_cnt - 1))
             else:
                 owp_deviation = math.sqrt(owp_sum)
@@ -102,7 +103,7 @@ class Forecaster:
             for row in rows:
                 forecast_temp, api, date, forecast_time = row
 
-                if api == 'OWP' and '12:00:00' <= forecast_time <= '18:00:00':
+                if api == 'OWP' and '12:00:00' <= forecast_time <= '18:00:00': # лучше не завязываться на названиях
                     avg.append([forecast_time, forecast_temp])
                     cnt += 1
                     owp_avg_temp = (owp_avg_temp * (cnt - 1) + forecast_temp) / cnt

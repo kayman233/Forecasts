@@ -8,7 +8,7 @@ if __name__ == "__main__":
         try:
             hand.get_command(command)
         except ValueError:
-            print('Try one more time')
+            print('Try one more time') #Почему еще раз попробовать?
         except Exception as error:
             print('Already added')
             print('Try tomorrow')

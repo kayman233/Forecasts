@@ -10,7 +10,7 @@ class Adder:
         temp_state = user_input.split(' ')
 
         current_state = temp_state[1]
-        if temp_state[0][0] == '-':
+        if temp_state[0][0] == '-': # не очень понятно, что за temp_state[0] и что в этом массиве 
             current_temperature = 0 - int(temp_state[0][1:])
         elif temp_state[0][0] == '+':
             current_temperature = int(temp_state[0][1:])
@@ -39,8 +39,8 @@ class Adder:
 
         owp_json_data = owp_response.json()
 
-        for i in range(0, len(owp_json_data["list"])):
-            forecasts_list.append([owp_json_data["list"][i]['dt_txt'],
+        for i in range(0, len(owp_json_data["list"])): # почему нельзя сделать for item in owp_json_data["list"]?
+            forecasts_list.append([owp_json_data["list"][i]['dt_txt'], # зачем добавлять в массив? Почему нельзя в объект, если потом нам отсюда брать значения?
                                    owp_json_data["list"][i]["main"]['temp'],
                                    owp_json_data["list"][i]["weather"][0]['description']])
 
@@ -49,6 +49,7 @@ class Adder:
             forecast_temp = forecast[1]
             forecast_state = forecast[2]
 
+            # Этот вызов лучше вынести в отдельный метод
             conn.execute('''
                             INSERT INTO forecasts (forecast_api, day_of_insert, time_of_insert,
                                                    forecast_day, forecast_time, temperature, state)
