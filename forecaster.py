@@ -5,17 +5,32 @@ import math
 
 
 class ForecasterException(Exception):
+    """Forecast exception"""
     pass
 
 
+class ApiInfo:
+    def __init__(self):
+        self.sum = 0
+        self.cnt = 0
+
+    def calculate_deviation(self):
+        if self.cnt > 1:
+            return math.sqrt(self.sum / (self.cnt - 1))
+        else:
+            return math.sqrt(self.sum)
+
+
 class Forecaster:
-    def __init__(self, date, first):
+    def __init__(self, date, first, limit):
         self.current_date = date
         self.deviation_list = []
         self.first_day = first
         self.date_format = "%Y-%m-%d"
         self.time_format = "%H:%M"
         self.closest_difference = 5400
+        self.forecast_days_limit = limit
+        self.forecasts_list = []
 
     def get_time_difference(self, first, second):
         if first is None or second is None:
@@ -24,7 +39,7 @@ class Forecaster:
         second_time = datetime.datetime.strptime(second[:5], self.time_format)
         diff1 = first_time - second_time
         diff2 = second_time - first_time
-        return min(diff1.seconds, diff2.seconds) # не очень понял, почему тут минимум, а не модуль
+        return min(diff1.seconds, diff2.seconds)
 
     def get_previous_forecasts(self, cur, day, difference):
         cur.execute("""
@@ -46,10 +61,9 @@ class Forecaster:
     def get_deviation_list(self, cur):
 
         for i in range(1, 6):
-            owp_sum = 0 # если захочешь добавить еще один сервис для сравнения, то придется копипастить переменные и тп, лучше сделать массив обьектов типа [{id: 'owp', sum: 0, cnt: 0}, {id: 'meta', sum: 0, cnt: 0}] ну или name вместо id
-            owp_cnt = 0
-            meta_sum = 0
-            meta_cnt = 0
+
+            owp_info = ApiInfo()
+            meta_info = ApiInfo()
 
             day = self.day_increase(self.first_day, i)
             difference = str(0 - i) + ' day'
@@ -66,27 +80,19 @@ class Forecaster:
 
                     if self.get_time_difference(real_time, forecast_time) < self.closest_difference:
                         if api == 'OWP':
-                            owp_sum += abs(real_temperature - forecast_temperature) ** 2
-                            owp_cnt += 1
-                        else:
-                            meta_sum += abs(real_temperature - forecast_temperature) ** 2
-                            meta_cnt += 1
+                            owp_info.sum += abs(real_temperature - forecast_temperature) ** 2
+                            owp_info.cnt += 1
+                        elif api == 'Meta Weather':
+                            meta_info.sum += abs(real_temperature - forecast_temperature) ** 2
+                            meta_info.cnt += 1
 
-            if owp_cnt > 1:
-                owp_deviation = math.sqrt(owp_sum / (owp_cnt - 1))
-            else:
-                owp_deviation = math.sqrt(owp_sum)
-
-            if meta_cnt > 1:
-                meta_deviation = math.sqrt(meta_sum / (meta_cnt - 1))
-            else:
-                meta_deviation = math.sqrt(meta_sum)
+            owp_deviation = owp_info.calculate_deviation()
+            meta_deviation = meta_info.calculate_deviation()
 
             self.deviation_list.append([owp_deviation, meta_deviation])
 
-    @staticmethod
-    def print_forecast(day, min_temp, max_temp):
-        print(day + ': ' + str(min_temp) + '°' + '...' + str(max_temp) + '°')
+    def add_to_list(self, day, min_temp, max_temp):
+        self.forecasts_list.append([day, min_temp, max_temp])
 
     def get_day_forecast(self, cur, difference):
 
@@ -96,12 +102,10 @@ class Forecaster:
                                     WHERE forecasts.day_of_insert = $1 AND forecasts.forecast_day = date($1, $2);""",
                     [self.current_date, difference])
 
-    def get_forecast(self, cur, number_of_days):
+    def get_forecast(self, cur):
 
         self.get_deviation_list(cur)
-        if number_of_days > 5:
-            print("It's too hard to predict for so many days")
-            number_of_days = 5
+        number_of_days = self.forecast_days_limit
 
         day = self.day_increase(self.current_date, 1)
         for i in range(1, number_of_days + 1):
@@ -130,5 +134,7 @@ class Forecaster:
             min_temp = int(min(owp_avg_temp - self.deviation_list[0][0], meta_temp - self.deviation_list[0][1]))
             max_temp = int(max(owp_avg_temp + self.deviation_list[0][0], meta_temp + self.deviation_list[0][1]))
 
-            self.print_forecast(day, min_temp, max_temp)
+            self.add_to_list(day, min_temp, max_temp)
             day = self.day_increase(day, 1)
+
+        return self.forecasts_list

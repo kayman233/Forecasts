@@ -3,12 +3,13 @@ import handler
 
 if __name__ == "__main__":
     hand = handler.Handler()
+    hand.print_info()
     while True:
         command = str(input())
         try:
             hand.get_command(command)
         except ValueError:
-            print('Try one more time') #Почему еще раз попробовать?
+            print('Try one more time')
         except handler.AdderException:
             print('Already added')
             print('Try tomorrow')
