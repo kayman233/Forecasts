@@ -3,6 +3,8 @@
 import datetime
 import math
 
+MINUTE = 60
+
 
 class ForecasterException(Exception):
     """Forecast exception"""
@@ -28,7 +30,7 @@ class Forecaster:
         self.first_day = first
         self.date_format = "%Y-%m-%d"
         self.time_format = "%H:%M"
-        self.closest_difference = 5400
+        self.closest_difference = 90 * MINUTE
         self.forecast_days_limit = limit
         self.forecasts_list = []
 
@@ -60,7 +62,7 @@ class Forecaster:
 
     def get_deviation_list(self, cur):
 
-        for i in range(1, 6):
+        for i in range(1, self.forecast_days_limit + 1):
 
             owp_info = ApiInfo()
             meta_info = ApiInfo()
@@ -105,10 +107,10 @@ class Forecaster:
     def get_forecast(self, cur):
 
         self.get_deviation_list(cur)
-        number_of_days = self.forecast_days_limit
 
         day = self.day_increase(self.current_date, 1)
-        for i in range(1, number_of_days + 1):
+
+        for i in range(1, self.forecast_days_limit + 1):
             difference = str(i) + ' day'
 
             self.get_day_forecast(cur, difference)

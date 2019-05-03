@@ -1,6 +1,13 @@
 import requests
 
 
+class ForecastInfo:
+    def __init__(self, date_, time_, temperature_):
+        self.date = date_
+        self.time = time_
+        self.temperature = temperature_
+
+
 class Adder:
     def __init__(self, date, time):
         self.current_date = date
@@ -48,15 +55,12 @@ class Adder:
         owp_json_data = owp_response.json()
 
         for info in owp_json_data["list"]:
-            forecasts_list.append([info['dt_txt'], info["main"]['temp']])
+            forecast_date_time = str(info['dt_txt']).split(' ')
+            forecast = ForecastInfo(forecast_date_time[0], forecast_date_time[1], info["main"]['temp'])
+            forecasts_list.append(forecast)
 
         for forecast in forecasts_list:
-            forecast_date_time = str(forecast[0]).split(' ')
-
-            forecast_date = forecast_date_time[0]
-            forecast_time = forecast_date_time[1]
-            forecast_temp = forecast[1]
-            self.database_add(conn, 'OWP', forecast_date, forecast_time, forecast_temp)
+            self.database_add(conn, 'OWP', forecast.date, forecast.time, forecast.temperature)
 
     def add_meta_weather_forecasts(self, conn):
         forecasts_list = []
@@ -70,10 +74,8 @@ class Adder:
         meta_weather_json_data = meta_weather_response.json()
 
         for info in meta_weather_json_data['consolidated_weather']:
-            forecasts_list.append([info['applicable_date'], info['the_temp']])
+            forecast = ForecastInfo(info['applicable_date'], None, info['the_temp'])
+            forecasts_list.append(forecast)
 
         for forecast in forecasts_list:
-            forecast_date = forecast[0]
-            forecast_time = None
-            forecast_temp = forecast[1]
-            self.database_add(conn, 'Meta Weather', forecast_date, forecast_time, forecast_temp)
+            self.database_add(conn, 'Meta Weather', forecast.date, forecast.time, forecast.temperature)
