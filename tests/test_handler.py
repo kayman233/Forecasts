@@ -6,7 +6,7 @@ sys.path.append('../')
 from handler import Handler, AdderException, ForecastException
 
 
-def deleter(conn, day):
+def delete_inserts(conn, day):
     conn.execute('''delete from real_weather where day_of_insert == ?''', [day])
     conn.execute('''delete from forecasts where day_of_insert == ?''', [day])
     conn.commit()
@@ -29,7 +29,7 @@ def test_info_print_2(capfd):
     out, err = capfd.readouterr()
     assert "You have already added weather today\n" in out
 
-    deleter(conn, handler.current_date)
+    delete_inserts(conn, handler.current_date)
 
 
 def test_get_command_exception():
@@ -62,4 +62,4 @@ def test_adder_exception():
     with pytest.raises(AdderException):
         handler.get_command('add +15')
 
-    deleter(conn, handler.current_date)
+    delete_inserts(conn, handler.current_date)
