@@ -50,8 +50,8 @@ class Forecaster:
                             real_weather.time_of_insert, forecasts.forecast_time
                             FROM real_weather
                             JOIN forecasts ON real_weather.day_of_insert = forecasts.forecast_day
-                            WHERE real_weather.day_of_insert = ? AND 
-                                  forecasts.day_of_insert = date(real_weather.day_of_insert,?);""",
+                            WHERE real_weather.day_of_insert = $1 AND 
+                                  forecasts.day_of_insert = date(real_weather.day_of_insert,$2);""",
                     [day, difference])
 
     def day_increase(self, day, i):

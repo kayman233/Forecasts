@@ -15,6 +15,21 @@ class ForecastException(Exception):
     pass
 
 
+class InputException(Exception):
+    """Input exception"""
+    pass
+
+
+class APIException(Exception):
+    """API exception"""
+    pass
+
+
+class DecodingException(Exception):
+    """Decoding exception"""
+    pass
+
+
 class Handler:
     def __init__(self):
         self.conn = sqlite3.connect('src/weather.db')
@@ -100,6 +115,13 @@ class Handler:
             if self.has_today_forecast():
                 raise AdderException
             else:
-                self.adder.add_real_weather(self.conn, add_str)
-                self.adder.add_forecasts(self.conn)
-                print('Your data have been just added')
+                try:
+                    self.adder.add_real_weather(self.conn, add_str)
+                    self.adder.add_forecasts(self.conn)
+                    print('Your data have been just added')
+                except adder.ApiException:
+                    raise APIException
+                except adder.DecodeException:
+                    raise
+        else:
+            raise InputException
