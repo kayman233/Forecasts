@@ -1,4 +1,6 @@
 import requests
+import re
+from urllib.parse import urljoin
 
 
 class ForecastInfo:
@@ -8,24 +10,32 @@ class ForecastInfo:
         self.temperature = temperature_
 
 
+class ApiException(Exception):
+    """API exception"""
+    pass
+
+
+class DecodeException(Exception):
+    """Decode exception"""
+    pass
+
+
 class Adder:
     def __init__(self, date, time):
         self.current_date = date
         self.current_time = time
+        self.lower_bound = -80
+        self.upper_bound = 60
 
     def add_real_weather(self, conn, user_input):
         temp_state = user_input
 
-        temperature_sign = temp_state[0]
+        current_temperature = int(temp_state)
 
-        if temperature_sign == '-':
-            current_temperature = 0 - int(temp_state[1:])
-        elif temperature_sign == '+':
-            current_temperature = int(temp_state[1:])
-        else:
-            current_temperature = int(temp_state)
+        if current_temperature < self.lower_bound or current_temperature > self.upper_bound:
+            raise ValueError
 
-        conn.execute("INSERT INTO real_weather VALUES (?, ?, ?)",
+        conn.execute("INSERT INTO real_weather VALUES ($1, $2, $3)",
                      (self.current_date, self.current_time, current_temperature))
 
         conn.commit()
@@ -39,18 +49,24 @@ class Adder:
         conn.execute('''
                                     INSERT INTO forecasts (forecast_api, day_of_insert, time_of_insert,
                                                            forecast_day, forecast_time, temperature)
-                                    VALUES (?, ?, ?, ?, ?, ?)''', (api, self.current_date, self.current_time,
+                                    VALUES ($1, $2, $3, $4, $5, $6)''', (api, self.current_date, self.current_time,
                                                                       forecast_date, forecast_time, forecast_temp))
 
     def add_owp_forecasts(self, conn):
         forecasts_list = []
 
-        owp_api_id_ = '97c122859f3196c90d736d7f9d3771fe'
-        city_id_owp = '524901'  # Moscow
+        with open('owp_api') as api_file:
+            owp_api_id = api_file.read()
 
-        owp_url = ''.join(['http://api.openweathermap.org/data/2.5/forecast?id=',
-                           city_id_owp, '&appid=', owp_api_id_, '&units=metric'])
-        owp_response = requests.get(owp_url)
+        city_id_owp = '524901'  # Moscow
+        owp_url_base = 'http://api.openweathermap.org/data/2.5/forecast?'
+
+        owp_params = {'id': city_id_owp, 'appid': owp_api_id, 'units': 'metric'}
+
+        owp_response = requests.get(owp_url_base, params=owp_params)
+
+        if re.match(r'2\d{2}', str(owp_response.status_code)) is None:
+            raise ApiException
 
         owp_json_data = owp_response.json()
 
@@ -66,16 +82,25 @@ class Adder:
         forecasts_list = []
 
         city_id_meta_weather = '2122265'  # Moscow
+        meta_url_base = 'https://www.metaweather.com/api/location/'
+        meta_weather_url = urljoin(meta_url_base, city_id_meta_weather)
 
-        meta_weather_url = ''.join(['https://www.metaweather.com/api/location/', city_id_meta_weather])
-        
         meta_weather_response = requests.get(meta_weather_url)
 
-        meta_weather_json_data = meta_weather_response.json()
+        if re.match(r'2\d{2}', str(meta_weather_response.status_code)) is None:
+            raise ApiException
 
-        for info in meta_weather_json_data['consolidated_weather']:
-            forecast = ForecastInfo(info['applicable_date'], None, info['the_temp'])
-            forecasts_list.append(forecast)
+        try:
+            meta_weather_json_data = meta_weather_response.json()
+        except ValueError:  # if not JSON
+            raise DecodeException
+
+        try:
+            for info in meta_weather_json_data['consolidated_weather']:
+                forecast = ForecastInfo(info['applicable_date'], None, info['the_temp'])
+                forecasts_list.append(forecast)
+        except KeyError:
+            raise DecodeException
 
         for forecast in forecasts_list:
             self.database_add(conn, 'Meta Weather', forecast.date, forecast.time, forecast.temperature)

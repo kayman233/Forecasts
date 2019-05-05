@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/kayman233/Forecasts.png)](https://travis-ci.org/kayman233/Forecasts)
+
+
 Code review - Weather app
 
 To add new data:
